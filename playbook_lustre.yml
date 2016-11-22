@@ -1,0 +1,80 @@
+---
+- hosts: lustreServers
+  tasks:
+  #- name: Add epel repo
+  #  yum- nam_repository:
+  #- naname: epel-release
+  #- nadescription: EPEL YUM repo
+  #- nafile: external_repos
+  #- nabaseurl: http://download.fedoraproject.org/pub/epel/$releasever/$basearch
+  #- nagpgcheck: 0
+
+  - name: Add lustre server repo
+    yum_repository:
+      name: lustre-server
+      description: CentOS-$releasever - Lustre
+      file: external_repos
+      baseurl: https://downloads.hpdd.intel.com/public/lustre/latest-feature-release/el7/server/
+      gpgcheck: 0
+
+  - name: Add e2fsprogs repo
+    yum_repository:
+      name: e2fsprogs
+      description: CentOS-$releasever - Ldiskfs
+      file: external_repos
+      baseurl: https://downloads.hpdd.intel.com/public/e2fsprogs/latest/el7/
+      gpgcheck: 0
+
+  - name: Install epel-release
+    yum: name=epel-release state=latest
+
+  - name: Install vim
+    yum: name=vim state=installed
+
+  - name: Install e2fsprogs
+    yum: name=e2fsprogs state=installed
+
+#  - name: Remove kernel
+#    yum: name=kernel state=removed
+
+  - name: Install lustre patched kernal
+    yum: name=kernel-3.10.0-327.3.1.el7_lustre state=installed
+
+       #Reboot required here
+       #  - name: Restart server
+       #    command: /sbin/shutdown -r +1
+       #    async: 0
+       #    poll: 0
+       #    ignore_errors: true
+       #
+       #        #Wait for reboot
+       #  - name: waiting for server to come back
+       #    local_action: wait_for host={{ inventory_hostname }}
+       #                  state=started
+       #    sudo: false
+
+  - name: Install lustre modules
+    yum: name=lustre-modules state=installed
+
+  - name: Install lustre osd ldiskfs
+    yum: name=lustre-osd-ldiskfs state=installed
+
+  - name: Install lustre osd ldiskfs mount
+    yum: name=lustre-osd-ldiskfs-mount state=installed
+
+  - name: Install libcom_err
+    yum: name=libcom_err state=installed
+
+  - name: Install libss
+    yum: name=libss state=installed
+
+  - name: Install lustre
+    yum: name=lustre state=installed
+
+  - name: Copy lnet files into modprode.d
+    copy: src=/etc/modprobe.d/lnet.conf dest=/etc/modprobe.d/lnet.conf
+
+  - command: /usr/sbin/chkconfig --add lnet
+  - command: /usr/sbin/chkconfig lnet on
+  - command: /usr/sbin/chkconfig --add lustre
+  - command: /usr/sbin/chkconfig lustre on

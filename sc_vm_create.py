@@ -1,13 +1,31 @@
 #!/usr/bin/python
 
-import os, sys
+import os, sys, fileinput
 
-if len(sys.argv) < 3:
-    print("ERROR: Missing vm name and/or ip number")
+if len(sys.argv) < 2:
+    print("-h for help")
+    quit()
+
+if sys.argv[1] == '-h':
+    print("First argument: Machine name")
+    print("Second argument: Machine IP")
+    print("Third argument: Machine role in lustre [mgs-mdt|oss]")
+    quit()
+
+if len(sys.argv) < 4:
+    print("ERROR: Missing arguments. -h for help")
     quit()
 
 name = sys.argv[1]
 ip_number = sys.argv[2]
+vm_role = sys.argv[3]
+
+print(vm_role)
+if vm_role != 'mgs-mdt' and vm_role != 'oss':
+    print("Machine role must be [msg-mdt|oss]")
+    quit()
+
+ansible_host_groups = ['centOS', 'lustre-{}'.format(vm_role)]
 vm_name = '{}_{}'.format(name, ip_number)
 ks_file = open("/home/mecavity/.kickstart/{}.ks".format(vm_name), 'w')
 
@@ -67,6 +85,12 @@ vm_install_cmd = "virt-install \
 --initrd-inject='{}' \
 --extra-args 'ks=file:/{}.ks'\
 ".format(vm_name, vm_name, os.path.realpath(ks_file.name), vm_name)
+
+# Add the new ip to all the correct groups in ansible hosts file
+for host in ansible_host_groups:
+    add_host = "sudo sed -i 's/\(\[{}\]\)/\\1\\n10.250.12.{}/' /etc/ansible/hosts".format(host, ip_number)
+    print(add_host)
+    os.system(add_host)
 
 print(vm_install_cmd)
 os.system(vm_install_cmd)

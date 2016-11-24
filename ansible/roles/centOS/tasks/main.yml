@@ -1,0 +1,33 @@
+---
+- name: Add epel repo
+  yum_repository:
+    name: epel-release
+    description: EPEL YUM repo
+    file: external_repos
+    baseurl: http://download.fedoraproject.org/pub/epel/$releasever/$basearch
+    gpgcheck: 0
+
+- name: Add lustre server repo
+  yum_repository:
+    name: lustre-server
+    description: CentOS-$releasever - Lustre
+    file: external_repos
+    baseurl: https://downloads.hpdd.intel.com/public/lustre/latest-feature-release/el7/server/
+    gpgcheck: 0
+
+- name: Add e2fsprogs repo
+  yum_repository:
+    name: e2fsprogs
+    description: CentOS-$releasever - Ldiskfs
+    file: external_repos
+    baseurl: https://downloads.hpdd.intel.com/public/e2fsprogs/latest/el7/
+    gpgcheck: 0
+
+- name: Install epel-release
+  yum: name=epel-release state=latest
+
+- name: Install vim
+  yum: name=vim state=installed
+
+- name: Disable dhcp
+  replace: dest=/etc/sysconfig/network-scripts/ifcfg-ens3 regexp='dhcp' replace='static'

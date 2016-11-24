@@ -1,0 +1,53 @@
+---
+- name: Install e2fsprogs
+  yum: name=e2fsprogs state=installed
+
+- name: Disable selinux
+  replace: dest=/etc/sysconfig/selinux regexp='enforcing' replace='disabled'
+
+- name: Add script to create lustre partition
+  script: sc_add_partition.py
+
+#- name: Remove kernel
+#  yum: name=kernel state=removed
+
+- name: Install lustre patched kernal
+  yum: name=kernel-3.10.0-327.3.1.el7_lustre state=installed
+
+      #Reboot required here
+- name: Restart server
+  command: /sbin/shutdown -r +1
+  async: 0
+  poll: 0
+  ignore_errors: true
+      #Wait for reboot
+- name: waiting for server to come back
+  local_action: wait_for host={{ inventory_hostname }}
+                state=started
+  sudo: false
+
+- name: Install lustre modules
+  yum: name=lustre-modules state=installed
+
+- name: Install lustre osd ldiskfs
+  yum: name=lustre-osd-ldiskfs state=installed
+
+- name: Install lustre osd ldiskfs mount
+  yum: name=lustre-osd-ldiskfs-mount state=installed
+
+- name: Install libcom_err
+  yum: name=libcom_err state=installed
+
+- name: Install libss
+  yum: name=libss state=installed
+
+- name: Install lustre
+  yum: name=lustre state=installed
+
+- name: Copy lnet files into modprode.d
+  copy: src=lnet.conf dest=/etc/modprobe.d/lnet.conf
+
+- command: /usr/sbin/chkconfig --add lnet
+- command: /usr/sbin/chkconfig lnet on
+- command: /usr/sbin/chkconfig --add lustre
+- command: /usr/sbin/chkconfig lustre on

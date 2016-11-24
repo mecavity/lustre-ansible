@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import os, sys, fileinput
+import os, sys, fileinput, subprocess
 
 if len(sys.argv) < 2:
     print("-h for help")
@@ -27,8 +27,12 @@ if vm_role != 'mgs-mdt' and vm_role != 'oss':
 
 ansible_host_groups = ['centOS', 'lustre-{}'.format(vm_role)]
 vm_name = '{}_{}'.format(name, ip_number)
-ks_file = open("/home/mecavity/.kickstart/{}.ks".format(vm_name), 'w')
 
+ssh_pub_key = subprocess.Popen(['cat /home/mecavity/.ssh/id_rsa.pub'], stdout=subprocess.PIPE, shell=True)
+ssh_pub_key = ssh_pub_key.communicate()[0]
+
+# New kickstarter file
+ks_file = open("/home/mecavity/.kickstart/{}.ks".format(vm_name), 'w')
 ks_str = "\
 #version=DEVEL\n\
 # System authorization information\n\
@@ -57,9 +61,13 @@ timezone Europe/Paris --isUtc\n\
 user --name=elliot --password=$6$74eCHOigwdSLZtbG$Wnu8trrrs1y48Jm.JQLNCjRza/Am2dkvxGHV8rg2lfQqe8PUrPaTG0qYKV8q4uO7bfMBjdzQTWNMyXXzVH.33/ --iscrypted --gecos=\"elliot\"\n\
 # System bootloader configuration\n\
 bootloader --append=\" crashkernel=auto\" --location=mbr --boot-drive=vda\n\
-autopart --type=lvm\n\
-# Partition clearing information\n\
-clearpart --none --initlabel\n\
+##autopart --type=lvm\n\
+## Partition clearing information\n\
+##clearpart --none --initlabel\n\
+clearpart --all --drives=vda\n\
+part /boot  --asprimary --size=521\n\
+part /      --asprimary --size=8000\n\
+part swap               --size=1024\n\
 \n\
 %packages\n\
 @^minimal\n\
@@ -70,12 +78,24 @@ kexec-tools\n\
 \n\
 %addon com_redhat_kdump --enable --reserve-mb='auto'\n\
 \n\
-%end \
-".format(ip_number)
-
+%end \n\
+%post\n\
+mkdir /root/.ssh\n\
+echo '{}' > /root/.ssh/authorized_keys\n\
+%end\
+".format(ip_number, ssh_pub_key)
 ks_file.write(ks_str)
 ks_file.close()
 
+# Remove new ip from hosts file
+os.system("sudo sed -i '/10.250.12.{}/d' /etc/ansible/hosts".format(ip_number))
+# Add the new ip to all the correct groups in ansible hosts file
+for host in ansible_host_groups:
+    add_host = "sudo sed -i 's/\(\[{}\]\)/\\1\\n10.250.12.{}/' /etc/ansible/hosts".format(host, ip_number)
+    print(add_host)
+    os.system(add_host)
+
+# Launch vm creation, be carefull if you changed the path to the kickstart file we just created!
 vm_install_cmd = "virt-install \
 --name={} --memory=1024 --vcpus=1 \
 --location='http://mirror.i3d.net/pub/centos/7/os/x86_64' \
@@ -85,12 +105,6 @@ vm_install_cmd = "virt-install \
 --initrd-inject='{}' \
 --extra-args 'ks=file:/{}.ks'\
 ".format(vm_name, vm_name, os.path.realpath(ks_file.name), vm_name)
-
-# Add the new ip to all the correct groups in ansible hosts file
-for host in ansible_host_groups:
-    add_host = "sudo sed -i 's/\(\[{}\]\)/\\1\\n10.250.12.{}/' /etc/ansible/hosts".format(host, ip_number)
-    print(add_host)
-    os.system(add_host)
 
 print(vm_install_cmd)
 os.system(vm_install_cmd)

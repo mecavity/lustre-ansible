@@ -17,3 +17,8 @@ Next up
 
 * Formating lustre on the VM spare disk and mounting them.
 * Adding the client.
+
+Requirements
+------------
+
+This is based of off debian. You will need to have configured KVM, a network bridge and use virt-manager. I recommend this article if you are just starting off : https://chafou.in/kvm-pxe/. However I do not use the PXE aspect of the article since we are going to be installing centOS from .iso.

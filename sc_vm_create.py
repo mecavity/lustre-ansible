@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import os, sys, fileinput, subprocess
+import os, sys, fileinput, subprocess, ans_hosts
 
 if len(sys.argv) < 2:
     print("-h for help")
@@ -10,23 +10,26 @@ if sys.argv[1] == '-h':
     print("First argument: Machine name")
     print("Second argument: Machine IP")
     print("Third argument: Machine role in lustre [mgs-mdt|oss]")
+    print("Thourth argument: FS name")
     quit()
 
-if len(sys.argv) < 4:
+if len(sys.argv) < 5:
     print("ERROR: Missing arguments. -h for help")
     quit()
 
 name = sys.argv[1]
 ip_number = sys.argv[2]
 vm_role = sys.argv[3]
+clst_name = sys.argv[4]
 
-print(vm_role)
 if vm_role != 'mgs-mdt' and vm_role != 'oss':
     print("Machine role must be [msg-mdt|oss]")
     quit()
 
-ansible_host_groups = ['centOS', 'lustre-{}'.format(vm_role)]
 vm_name = '{}_{}'.format(name, ip_number)
+
+# Add new vm to ansible hosts
+ans_hosts.add_host(ip_number, vm_role, clst_name)
 
 ssh_pub_key = subprocess.Popen(['cat /home/mecavity/.ssh/id_rsa.pub'], stdout=subprocess.PIPE, shell=True)
 ssh_pub_key = ssh_pub_key.communicate()[0]
@@ -86,14 +89,6 @@ echo '{}' > /root/.ssh/authorized_keys\n\
 ".format(ip_number, ssh_pub_key)
 ks_file.write(ks_str)
 ks_file.close()
-
-# Remove new ip from hosts file
-os.system("sudo sed -i '/10.250.12.{}/d' /etc/ansible/hosts".format(ip_number))
-# Add the new ip to all the correct groups in ansible hosts file
-for host in ansible_host_groups:
-    add_host = "sudo sed -i 's/\(\[{}\]\)/\\1\\n10.250.12.{}/' /etc/ansible/hosts".format(host, ip_number)
-    print(add_host)
-    os.system(add_host)
 
 # Launch vm creation, be carefull if you changed the path to the kickstart file we just created!
 vm_install_cmd = "virt-install \

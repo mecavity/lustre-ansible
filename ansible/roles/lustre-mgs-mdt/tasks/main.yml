@@ -1,0 +1,13 @@
+---
+- name: Execute new lustre mgs-mdt partition formating
+  script: sc_make_lustre_fs.py
+
+- name: Creates mount directory
+  file: path=/mnt/mgs-mdt state=directory
+
+- name: Mount lustre mgs-mdt partition
+  mount:
+    name: /mnt/mgs-mdt
+    src: /dev/vda4
+    fstype: lustre
+    state: mounted

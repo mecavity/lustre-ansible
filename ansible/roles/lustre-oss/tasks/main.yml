@@ -1,0 +1,13 @@
+---
+- name: Execute new lustre oss partition formating
+  script: sc_make_lustre_fs.sh {{ cluster_name }} {{ mgs_ip }}
+
+- name: Creates mount directory
+  file: path=/mnt/oss state=directory
+
+- name: Mount lustre oss partition
+  mount:
+    name: /mnt/oss
+    src: /dev/vda4
+    fstype: lustre
+    state: mounted

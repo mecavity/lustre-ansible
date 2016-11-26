@@ -1,7 +1,17 @@
 ---
 
- - hosts: all
-   remote_user: root
-   roles:
-       - centOS
-       - lustre
+- hosts: lustre
+  remote_user: root
+  roles:
+      - centOS
+      - lustre
+
+- hosts: lustre-mgs-mdt
+  remote_user: root
+  roles:
+      - lustre-mgs-mdt
+
+- hosts: lustre-oss
+  remote_user: root
+  roles:
+      - lustre-oss
